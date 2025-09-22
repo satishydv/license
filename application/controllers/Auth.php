@@ -9,9 +9,8 @@ class Auth extends CI_Controller {
         $this->load->library('form_validation');
         $this->load->config('jwt');
         
-        // Load JWT library manually
-        require_once APPPATH . 'libraries/JWT.php';
-        $this->jwt_library = new JWT_Library();
+        // Load JWT library using CodeIgniter's loader
+        $this->load->library('JWT_Library');
         
         // Set CORS headers
         header('Access-Control-Allow-Origin: *');
@@ -71,6 +70,14 @@ class Auth extends CI_Controller {
             $token = $this->jwt_library->encode($payload);
             
             // Prepare user data (exclude password)
+            // Get user's permissions
+            $this->load->model('Role_model');
+            $role = $this->Role_model->get_role_by_id($user->role_id);
+            $permissions = [];
+            if ($role && $role->permissions) {
+                $permissions = is_string($role->permissions) ? json_decode($role->permissions, true) : $role->permissions;
+            }
+            
             $user_data = [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -78,7 +85,8 @@ class Auth extends CI_Controller {
                 'role' => $user->role,
                 'status' => $user->status,
                 'created_at' => $user->created_at,
-                'last_login' => $user->last_login
+                'last_login' => $user->last_login,
+                'permissions' => $permissions
             ];
             
             $this->json_response(true, 'Login successful', [
@@ -162,6 +170,14 @@ class Auth extends CI_Controller {
             return;
         }
         
+        // Get user's permissions
+        $this->load->model('Role_model');
+        $role = $this->Role_model->get_role_by_id($user->role_id);
+        $permissions = [];
+        if ($role && $role->permissions) {
+            $permissions = is_string($role->permissions) ? json_decode($role->permissions, true) : $role->permissions;
+        }
+        
         $user_data = [
             'id' => $user->id,
             'name' => $user->name,
@@ -169,7 +185,8 @@ class Auth extends CI_Controller {
             'role' => $user->role,
             'status' => $user->status,
             'created_at' => $user->created_at,
-            'last_login' => $user->last_login
+            'last_login' => $user->last_login,
+            'permissions' => $permissions
         ];
         
         $this->json_response(true, 'User data retrieved', ['user' => $user_data]);

@@ -8,7 +8,22 @@ class JWT_Library {
     
     public function __construct() {
         $this->CI =& get_instance();
-        $this->key = $this->CI->config->item('jwt_key');
+        
+        // Try to get JWT key from config, fallback to default
+        try {
+            if (isset($this->CI->config) && method_exists($this->CI->config, 'item')) {
+                $this->key = $this->CI->config->item('jwt_key');
+            } else {
+                $this->key = 'your-secret-key-change-this-in-production';
+            }
+        } catch (Exception $e) {
+            $this->key = 'your-secret-key-change-this-in-production';
+        }
+        
+        // Ensure we have a key
+        if (empty($this->key)) {
+            $this->key = 'your-secret-key-change-this-in-production';
+        }
     }
     
     public function encode($payload) {
@@ -49,10 +64,27 @@ class JWT_Library {
     }
     
     public function validate_token($token) {
+        log_message('debug', 'JWT validate_token called with token: ' . substr($token, 0, 20) . '...');
+        
         $decoded = $this->decode($token);
-        if ($decoded && isset($decoded->exp) && $decoded->exp > time()) {
-            return $decoded;
+        if (!$decoded) {
+            log_message('debug', 'JWT decode failed');
+            return false;
         }
-        return false;
+        
+        log_message('debug', 'JWT decoded successfully: ' . json_encode($decoded));
+        
+        if (!isset($decoded->exp)) {
+            log_message('debug', 'JWT token has no expiration');
+            return false;
+        }
+        
+        if ($decoded->exp <= time()) {
+            log_message('debug', 'JWT token expired. Exp: ' . $decoded->exp . ', Current: ' . time());
+            return false;
+        }
+        
+        log_message('debug', 'JWT token is valid');
+        return $decoded;
     }
 }

@@ -56,8 +56,39 @@ class User_model extends CI_Model {
         
         // Set default values
         $data['status'] = isset($data['status']) ? $data['status'] : 'pending';
-        $data['role'] = isset($data['role']) ? $data['role'] : 'user';
+        $data['role'] = isset($data['role']) && !empty($data['role']) ? $data['role'] : 'user';
         $data['created_at'] = date('Y-m-d H:i:s');
+        
+        // Get role_id from role name
+        log_message('debug', 'User model - role data: ' . json_encode($data));
+        
+        if (isset($data['role']) && !empty($data['role'])) {
+            $this->load->model('Role_model');
+            $role = $this->Role_model->get_role_by_name($data['role']);
+            log_message('debug', 'Role lookup result: ' . json_encode($role));
+            
+            if ($role) {
+                // Preserve the original role name and set the role_id
+                $data['role'] = $data['role']; // Keep the original role name
+                $data['role_id'] = $role->id;
+                log_message('debug', 'Role assigned - role: ' . $data['role'] . ', role_id: ' . $data['role_id']);
+            } else {
+                // If role not found, set to default 'user' role
+                $default_role = $this->Role_model->get_role_by_name('user');
+                if ($default_role) {
+                    $data['role'] = 'user';
+                    $data['role_id'] = $default_role->id;
+                }
+            }
+        } else {
+            // If no role provided, set to default 'user' role
+            $this->load->model('Role_model');
+            $default_role = $this->Role_model->get_role_by_name('user');
+            if ($default_role) {
+                $data['role'] = 'user';
+                $data['role_id'] = $default_role->id;
+            }
+        }
         
         $this->db->insert('users', $data);
         return $this->db->insert_id();
@@ -70,6 +101,17 @@ class User_model extends CI_Model {
         // Hash password if provided
         if (isset($data['password'])) {
             $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+        }
+        
+        // Get role_id from role name if role is being updated
+        if (isset($data['role']) && !empty($data['role'])) {
+            $this->load->model('Role_model');
+            $role = $this->Role_model->get_role_by_name($data['role']);
+            if ($role) {
+                // Preserve the original role name and set the role_id
+                $data['role'] = $data['role']; // Keep the original role name
+                $data['role_id'] = $role->id;
+            }
         }
         
         $this->db->where('id', $id);

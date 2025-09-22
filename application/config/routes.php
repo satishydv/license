@@ -59,3 +59,17 @@ $route['api/auth/register'] = 'auth/register';
 $route['api/auth/me'] = 'auth/me';
 $route['api/auth/refresh'] = 'auth/refresh';
 $route['api/auth/logout'] = 'auth/logout';
+
+// Role API Routes
+$route['api/roles'] = 'role/index';
+$route['api/roles/create'] = 'role/create';
+$route['api/roles/(:num)'] = 'role/show/$1';
+$route['api/roles/(:num)/update'] = 'role/update/$1';
+$route['api/roles/(:num)/delete'] = 'role/delete/$1';
+
+// User API Routes
+$route['api/users'] = 'user/index';
+$route['api/users/create'] = 'user/create';
+$route['api/users/(:num)'] = 'user/show/$1';
+$route['api/users/(:num)/update'] = 'user/update/$1';
+$route['api/users/(:num)/delete'] = 'user/delete/$1';
