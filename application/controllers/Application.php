@@ -42,6 +42,8 @@ class Application extends CI_Controller {
 		$this->form_validation->set_rules('expiry_date', 'Expiry Date', 'required');
 		$this->form_validation->set_rules('cover_class', 'Cover Class', 'required');
 		$this->form_validation->set_rules('amount', 'Amount', 'required');
+		// Pay amount is optional, but if provided it must be numeric
+		$this->form_validation->set_rules('pay_amount', 'Pay Amount', 'numeric');
 		$this->form_validation->set_rules('mode_of_payment', 'Mode of Payment', 'required');
 
 		if ($this->form_validation->run() === FALSE) {
@@ -112,6 +114,7 @@ class Application extends CI_Controller {
 			'expiry_date' => $this->input->post('expiry_date'),
 			'cover_class' => $this->input->post('cover_class'),
 			'amount' => $this->input->post('amount'),
+			'pay_amount' => $this->input->post('pay_amount'),
 			'mode_of_payment' => $this->input->post('mode_of_payment'),
 			'license_attachment_path' => $licensePathRel,
 			'payment_receipt_path' => $paymentPathRel,
