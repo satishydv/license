@@ -78,4 +78,8 @@ $route['api/users/(:num)/delete'] = 'user/delete/$1';
 $route['api/cities'] = 'cities/index';
 
 // Applications API Routes
+$route['api/applications'] = 'application/index';
 $route['api/applications/create'] = 'application/create';
+$route['api/applications/(:num)'] = 'application/show/$1';
+$route['api/applications/(:num)/update'] = 'application/update/$1';
+$route['api/applications/(:num)/delete'] = 'application/delete/$1';
