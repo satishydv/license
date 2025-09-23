@@ -76,3 +76,6 @@ $route['api/users/(:num)/delete'] = 'user/delete/$1';
 
 // Cities API Routes
 $route['api/cities'] = 'cities/index';
+
+// Applications API Routes
+$route['api/applications/create'] = 'application/create';
