@@ -7,7 +7,8 @@ class Application extends CI_Controller {
 		parent::__construct();
 		$this->load->database();
 		$this->load->helper(['url', 'file']);
-		$this->load->library(['form_validation', 'upload']);
+		$this->load->library(['form_validation', 'upload', 'jwt_library']);
+		$this->load->model('User_model');
 
 		// CORS headers
 		header('Access-Control-Allow-Origin: *');
@@ -22,7 +23,89 @@ class Application extends CI_Controller {
 		}
 	}
 
+	/**
+	 * Check if user has permission
+	 */
+	private function check_permission($permission) {
+		try {
+			// Get Authorization header
+			$token = $this->input->get_request_header('Authorization');
+			if (!$token) {
+				log_message('debug', 'No Authorization header found');
+				return false;
+			}
+			
+			// Remove 'Bearer ' prefix
+			$token = str_replace('Bearer ', '', $token);
+			log_message('debug', 'JWT Token (first 20 chars): ' . substr($token, 0, 20));
+			
+			// Validate token using JWT library
+			$decoded = $this->jwt_library->validate_token($token);
+			if (!$decoded) {
+				log_message('debug', 'JWT token validation failed');
+				return false;
+			}
+			
+			log_message('debug', 'JWT token validated for user: ' . $decoded->email);
+			log_message('debug', 'JWT decoded object: ' . json_encode($decoded));
+			
+			// Get user's role
+			$user_id = isset($decoded->user_id) ? $decoded->user_id : (isset($decoded->id) ? $decoded->id : null);
+			if (!$user_id) {
+				log_message('debug', 'Permission check failed: No user ID found');
+				return false;
+			}
+			
+			log_message('debug', 'Looking up user with ID: ' . $user_id);
+			
+			$user_data = $this->User_model->get_user_by_id($user_id);
+			if (!$user_data) {
+				log_message('debug', 'Permission check failed: User data not found for user_id: ' . $user_id);
+				return false;
+			}
+			
+			if (!$user_data->role_id) {
+				log_message('debug', 'Permission check failed: User has no role_id for user_id: ' . $user_id);
+				return false;
+			}
+			
+			log_message('debug', 'User role_id: ' . $user_data->role_id);
+			
+			// Get role permissions
+			$this->load->model('Role_model');
+			$role = $this->Role_model->get_role_by_id($user_data->role_id);
+			if (!$role || !$role->permissions) {
+				log_message('debug', 'Permission check failed: Role not found or no permissions for role_id: ' . $user_data->role_id);
+				return false;
+			}
+			
+			// Decode permissions JSON
+			$permissions = is_string($role->permissions) ? json_decode($role->permissions, true) : $role->permissions;
+			if (!is_array($permissions)) {
+				log_message('debug', 'Permission check failed: Permissions is not an array: ' . json_encode($role->permissions));
+				return false;
+			}
+			
+			log_message('debug', 'User permissions: ' . json_encode($permissions));
+			
+			// Check if permission exists
+			$hasPermission = in_array($permission, $permissions);
+			log_message('debug', 'Has permission ' . $permission . ': ' . ($hasPermission ? 'YES' : 'NO'));
+			
+			return $hasPermission;
+		} catch (Exception $e) {
+			log_message('error', 'Permission check error: ' . $e->getMessage());
+			return false;
+		}
+	}
+
 	public function create() {
+		// Check if user has permission to create applications
+		if (!$this->check_permission('applications:create')) {
+			$this->json_response(false, 'Access denied. Insufficient permissions.', null, 403);
+			return;
+		}
+
 		if ($this->input->method() !== 'post') {
 			return $this->json_response(false, 'Method not allowed', null, 405);
 		}
@@ -135,6 +218,12 @@ class Application extends CI_Controller {
 	}
 
 	public function index() {
+		// Check if user has permission to read applications
+		if (!$this->check_permission('applications:read')) {
+			$this->json_response(false, 'Access denied. Insufficient permissions.', null, 403);
+			return;
+		}
+
 		if ($this->input->method() !== 'get') {
 			return $this->json_response(false, 'Method not allowed', null, 405);
 		}
@@ -150,6 +239,12 @@ class Application extends CI_Controller {
 	}
 
 	public function show($id) {
+		// Check if user has permission to read applications
+		if (!$this->check_permission('applications:read')) {
+			$this->json_response(false, 'Access denied. Insufficient permissions.', null, 403);
+			return;
+		}
+
 		if ($this->input->method() !== 'get') {
 			return $this->json_response(false, 'Method not allowed', null, 405);
 		}
@@ -165,6 +260,12 @@ class Application extends CI_Controller {
 	}
 
 	public function update($id) {
+		// Check if user has permission to update applications
+		if (!$this->check_permission('applications:update')) {
+			$this->json_response(false, 'Access denied. Insufficient permissions.', null, 403);
+			return;
+		}
+
 		if ($this->input->method() !== 'post') {
 			return $this->json_response(false, 'Method not allowed', null, 405);
 		}
@@ -222,6 +323,12 @@ class Application extends CI_Controller {
 	}
 
 	public function delete($id) {
+		// Check if user has permission to delete applications
+		if (!$this->check_permission('applications:delete')) {
+			$this->json_response(false, 'Access denied. Insufficient permissions.', null, 403);
+			return;
+		}
+
 		if ($this->input->method() !== 'delete') {
 			return $this->json_response(false, 'Method not allowed', null, 405);
 		}
