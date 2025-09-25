@@ -7,7 +7,7 @@ class Application extends CI_Controller {
 		parent::__construct();
 		$this->load->database();
 		$this->load->helper(['url', 'file']);
-		$this->load->library(['form_validation', 'upload', 'jwt_library']);
+		$this->load->library(['form_validation', 'upload', 'JWT_Library']);
 		$this->load->model('User_model');
 
 		// CORS headers
