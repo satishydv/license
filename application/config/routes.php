@@ -76,6 +76,24 @@ $route['api/users/(:num)/delete'] = 'user/delete/$1';
 
 // Cities API Routes
 $route['api/cities'] = 'cities/index';
+$route['api/cities/create'] = 'cities/create';
+$route['api/cities/(:num)'] = 'cities/get/$1';
+$route['api/cities/(:num)/update'] = 'cities/update/$1';
+$route['api/cities/(:num)/delete'] = 'cities/delete/$1';
+
+// Vendors API Routes
+$route['api/vendors'] = 'vendors/index';
+$route['api/vendors/create'] = 'vendors/create';
+$route['api/vendors/(:num)'] = 'vendors/get/$1';
+$route['api/vendors/(:num)/update'] = 'vendors/update/$1';
+$route['api/vendors/(:num)/delete'] = 'vendors/delete/$1';
+
+// DTO API Routes
+$route['api/dto'] = 'dto/index';
+$route['api/dto/create'] = 'dto/create';
+$route['api/dto/(:num)'] = 'dto/get/$1';
+$route['api/dto/(:num)/update'] = 'dto/update/$1';
+$route['api/dto/(:num)/delete'] = 'dto/delete/$1';
 
 // Applications API Routes
 $route['api/applications'] = 'application/index';
@@ -83,3 +101,11 @@ $route['api/applications/create'] = 'application/create';
 $route['api/applications/(:num)'] = 'application/show/$1';
 $route['api/applications/(:num)/update'] = 'application/update/$1';
 $route['api/applications/(:num)/delete'] = 'application/delete/$1';
+
+// Reports API Routes
+$route['api/reports'] = 'reports/index';
+$route['api/reports/financial'] = 'reports/financial';
+$route['api/reports/applications'] = 'reports/applications';
+$route['api/reports/income'] = 'reports/income';
+$route['api/reports/dues'] = 'reports/dues';
+$route['api/reports/customers'] = 'reports/customers';
