@@ -61,12 +61,96 @@ class Vendors extends CI_Controller {
         }
     }
 
+    private function check_permission($permission) {
+        try {
+            // Get Authorization header
+            $token = $this->input->get_request_header('Authorization');
+            if (!$token) {
+                log_message('debug', 'No Authorization header found');
+                return false;
+            }
+            
+            // Remove 'Bearer ' prefix
+            $token = str_replace('Bearer ', '', $token);
+            log_message('debug', 'JWT Token (first 20 chars): ' . substr($token, 0, 20));
+            
+            // Validate token using JWT library
+            $decoded = $this->jwt_library->validate_token($token);
+            if (!$decoded) {
+                log_message('debug', 'JWT token validation failed');
+                return false;
+            }
+            
+            log_message('debug', 'JWT token validated for user: ' . $decoded->email);
+            log_message('debug', 'JWT decoded object: ' . json_encode($decoded));
+            
+            // Get user's role
+            $user_id = isset($decoded->user_id) ? $decoded->user_id : (isset($decoded->id) ? $decoded->id : null);
+            if (!$user_id) {
+                log_message('debug', 'Permission check failed: No user ID found');
+                return false;
+            }
+            
+            log_message('debug', 'Looking up user with ID: ' . $user_id);
+            
+            $this->load->model('User_model');
+            $user_data = $this->User_model->get_user_by_id($user_id);
+            if (!$user_data) {
+                log_message('debug', 'Permission check failed: User data not found for user_id: ' . $user_id);
+                return false;
+            }
+            
+            if (!$user_data->role_id) {
+                log_message('debug', 'Permission check failed: User has no role_id for user_id: ' . $user_id);
+                return false;
+            }
+            
+            log_message('debug', 'User role_id: ' . $user_data->role_id);
+            
+            // Get role permissions
+            $this->load->model('Role_model');
+            $role = $this->Role_model->get_role_by_id($user_data->role_id);
+            if (!$role || !$role->permissions) {
+                log_message('debug', 'Permission check failed: Role not found or no permissions for role_id: ' . $user_data->role_id);
+                return false;
+            }
+            
+            // Decode permissions JSON
+            $permissions = is_string($role->permissions) ? json_decode($role->permissions, true) : $role->permissions;
+            if (!is_array($permissions)) {
+                log_message('debug', 'Permission check failed: Permissions is not an array: ' . json_encode($role->permissions));
+                return false;
+            }
+            
+            log_message('debug', 'User permissions: ' . json_encode($permissions));
+            
+            // Check if permission exists
+            $hasPermission = in_array($permission, $permissions);
+            log_message('debug', 'Has permission ' . $permission . ': ' . ($hasPermission ? 'YES' : 'NO'));
+            
+            return $hasPermission;
+        } catch (Exception $e) {
+            log_message('error', 'Permission check error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
     public function index() {
         try {
             log_message('debug', 'Vendors index - Request received');
             
-            // Skip authentication for now to allow access without token
-            log_message('debug', 'Vendors index - Skipping authentication for testing');
+            // Check permission for reading vendors
+            if (!$this->check_permission('vendors:read')) {
+                log_message('debug', 'Vendors index - Permission denied: vendors:read');
+                $this->output
+                    ->set_status_header(403)
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode([
+                        'success' => false,
+                        'error' => 'Permission denied. You do not have permission to read vendors.'
+                    ]));
+                return;
+            }
             
             $page = (int) $this->input->get('page') ?: 1;
             $limit = (int) $this->input->get('limit') ?: 100;
@@ -125,11 +209,17 @@ class Vendors extends CI_Controller {
 
     public function create() {
         try {
-            $user = $this->authenticate();
-            if (!$user) {
-                log_message('debug', 'Vendors create - Authentication failed, but allowing access for testing');
-                // For now, allow access without authentication for testing
-                // TODO: Remove this and add proper permission checking
+            // Check permission for creating vendors
+            if (!$this->check_permission('vendors:create')) {
+                log_message('debug', 'Vendors create - Permission denied: vendors:create');
+                $this->output
+                    ->set_status_header(403)
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode([
+                        'success' => false,
+                        'error' => 'Permission denied. You do not have permission to create vendors.'
+                    ]));
+                return;
             }
             
             // Get form data
@@ -255,11 +345,17 @@ class Vendors extends CI_Controller {
 
     public function update($id) {
         try {
-            $user = $this->authenticate();
-            if (!$user) {
-                log_message('debug', 'Vendors update - Authentication failed, but allowing access for testing');
-                // For now, allow access without authentication for testing
-                // TODO: Remove this and add proper permission checking
+            // Check permission for updating vendors
+            if (!$this->check_permission('vendors:update')) {
+                log_message('debug', 'Vendors update - Permission denied: vendors:update');
+                $this->output
+                    ->set_status_header(403)
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode([
+                        'success' => false,
+                        'error' => 'Permission denied. You do not have permission to update vendors.'
+                    ]));
+                return;
             }
             
             // Get form data
@@ -409,11 +505,17 @@ class Vendors extends CI_Controller {
 
     public function delete($id) {
         try {
-            $user = $this->authenticate();
-            if (!$user) {
-                log_message('debug', 'Vendors delete - Authentication failed, but allowing access for testing');
-                // For now, allow access without authentication for testing
-                // TODO: Remove this and add proper permission checking
+            // Check permission for deleting vendors
+            if (!$this->check_permission('vendors:delete')) {
+                log_message('debug', 'Vendors delete - Permission denied: vendors:delete');
+                $this->output
+                    ->set_status_header(403)
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode([
+                        'success' => false,
+                        'error' => 'Permission denied. You do not have permission to delete vendors.'
+                    ]));
+                return;
             }
             
             $existing = $this->db->query("SELECT vendor_id FROM vendors WHERE vendor_id = ?", array($id))->row();
@@ -458,11 +560,17 @@ class Vendors extends CI_Controller {
 
     public function get($id) {
         try {
-            $user = $this->authenticate();
-            if (!$user) {
-                log_message('debug', 'Vendors get - Authentication failed, but allowing access for testing');
-                // For now, allow access without authentication for testing
-                // TODO: Remove this and add proper permission checking
+            // Check permission for reading vendors
+            if (!$this->check_permission('vendors:read')) {
+                log_message('debug', 'Vendors get - Permission denied: vendors:read');
+                $this->output
+                    ->set_status_header(403)
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode([
+                        'success' => false,
+                        'error' => 'Permission denied. You do not have permission to read vendors.'
+                    ]));
+                return;
             }
             
             $vendor = $this->db->query("SELECT * FROM vendors WHERE vendor_id = ?", 
@@ -501,6 +609,58 @@ class Vendors extends CI_Controller {
         }
     }
 
+    public function public_list() {
+        try {
+            // Explicitly set CORS headers for this method to ensure they're not overridden
+            header('Access-Control-Allow-Origin: *');
+            header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+            header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+            header('Access-Control-Allow-Credentials: false');
+            header('Access-Control-Max-Age: 86400');
+            
+            // Handle preflight OPTIONS request
+            if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+                http_response_code(200);
+                exit();
+            }
+            
+            log_message('debug', 'Vendor public_list - Request received (no authentication required)');
+            
+            // This endpoint is public and doesn't require authentication
+            // It only returns basic vendor information (id and name) for dropdowns
+            
+            $query = $this->db->query("SELECT vendor_id, name FROM vendors ORDER BY name ASC");
+            
+            if (!$query) {
+                throw new Exception('Query failed: ' . $this->db->last_query());
+            }
+            
+            $vendors = $query->result_array();
+            
+            log_message('debug', 'Vendor public_list - Retrieved ' . count($vendors) . ' vendors');
+            
+            $this->output
+                ->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'success' => true,
+                    'data' => [
+                        'vendors' => $vendors
+                    ]
+                ]));
+                
+        } catch (Exception $e) {
+            log_message('error', 'Vendor public_list error: ' . $e->getMessage());
+            $this->output
+                ->set_status_header(500)
+                ->set_content_type('application/json')
+                ->set_output(json_encode([
+                    'success' => false,
+                    'error' => 'Failed to fetch vendors',
+                    'message' => $e->getMessage()
+                ]));
+        }
+    }
+
     public function report() {
         try {
             // Explicitly set CORS headers for this method to ensure they're not overridden
@@ -518,8 +678,18 @@ class Vendors extends CI_Controller {
             
             log_message('debug', 'Vendor report - Request received');
             
-            // Skip authentication for now to allow access without token
-            log_message('debug', 'Vendor report - Skipping authentication for testing');
+            // Check permission for reading vendors (reports are read operations)
+            if (!$this->check_permission('vendors:read')) {
+                log_message('debug', 'Vendor report - Permission denied: vendors:read');
+                $this->output
+                    ->set_status_header(403)
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode([
+                        'success' => false,
+                        'error' => 'Permission denied. You do not have permission to read vendor reports.'
+                    ]));
+                return;
+            }
             
             $fromDate = $this->input->get('from_date');
             $toDate = $this->input->get('to_date');

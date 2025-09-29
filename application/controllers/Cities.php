@@ -62,6 +62,80 @@ class Cities extends CI_Controller {
         }
     }
 
+    private function check_permission($permission) {
+        try {
+            // Get Authorization header
+            $token = $this->input->get_request_header('Authorization');
+            if (!$token) {
+                log_message('debug', 'No Authorization header found');
+                return false;
+            }
+            
+            // Remove 'Bearer ' prefix
+            $token = str_replace('Bearer ', '', $token);
+            log_message('debug', 'JWT Token (first 20 chars): ' . substr($token, 0, 20));
+            
+            // Validate token using JWT library
+            $decoded = $this->jwt_library->validate_token($token);
+            if (!$decoded) {
+                log_message('debug', 'JWT token validation failed');
+                return false;
+            }
+            
+            log_message('debug', 'JWT token validated for user: ' . $decoded->email);
+            log_message('debug', 'JWT decoded object: ' . json_encode($decoded));
+            
+            // Get user's role
+            $user_id = isset($decoded->user_id) ? $decoded->user_id : (isset($decoded->id) ? $decoded->id : null);
+            if (!$user_id) {
+                log_message('debug', 'Permission check failed: No user ID found');
+                return false;
+            }
+            
+            log_message('debug', 'Looking up user with ID: ' . $user_id);
+            
+            $this->load->model('User_model');
+            $user_data = $this->User_model->get_user_by_id($user_id);
+            if (!$user_data) {
+                log_message('debug', 'Permission check failed: User data not found for user_id: ' . $user_id);
+                return false;
+            }
+            
+            if (!$user_data->role_id) {
+                log_message('debug', 'Permission check failed: User has no role_id for user_id: ' . $user_id);
+                return false;
+            }
+            
+            log_message('debug', 'User role_id: ' . $user_data->role_id);
+            
+            // Get role permissions
+            $this->load->model('Role_model');
+            $role = $this->Role_model->get_role_by_id($user_data->role_id);
+            if (!$role || !$role->permissions) {
+                log_message('debug', 'Permission check failed: Role not found or no permissions for role_id: ' . $user_data->role_id);
+                return false;
+            }
+            
+            // Decode permissions JSON
+            $permissions = is_string($role->permissions) ? json_decode($role->permissions, true) : $role->permissions;
+            if (!is_array($permissions)) {
+                log_message('debug', 'Permission check failed: Permissions is not an array: ' . json_encode($role->permissions));
+                return false;
+            }
+            
+            log_message('debug', 'User permissions: ' . json_encode($permissions));
+            
+            // Check if permission exists
+            $hasPermission = in_array($permission, $permissions);
+            log_message('debug', 'Has permission ' . $permission . ': ' . ($hasPermission ? 'YES' : 'NO'));
+            
+            return $hasPermission;
+        } catch (Exception $e) {
+            log_message('error', 'Permission check error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
     public function index() {
         try {
             log_message('debug', 'Cities index - Request received');
@@ -91,6 +165,20 @@ class Cities extends CI_Controller {
             }
             
             log_message('debug', 'Cities index - No state parameter, requiring authentication');
+            
+            // Check permission for reading cities
+            if (!$this->check_permission('cities:read')) {
+                log_message('debug', 'Cities index - Permission denied: cities:read');
+                $this->output
+                    ->set_status_header(403)
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode([
+                        'success' => false,
+                        'error' => 'Permission denied. You do not have permission to read cities.'
+                    ]));
+                return;
+            }
+            
             // New functionality - return all cities with full data (requires authentication)
             $user = $this->authenticate();
             if (!$user) {
@@ -178,11 +266,17 @@ class Cities extends CI_Controller {
 
     public function create() {
         try {
-            $user = $this->authenticate();
-            if (!$user) {
-                log_message('debug', 'Cities create - Authentication failed, but allowing access for testing');
-                // For now, allow access without authentication for testing
-                // TODO: Remove this and add proper permission checking
+            // Check permission for creating cities
+            if (!$this->check_permission('cities:create')) {
+                log_message('debug', 'Cities create - Permission denied: cities:create');
+                $this->output
+                    ->set_status_header(403)
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode([
+                        'success' => false,
+                        'error' => 'Permission denied. You do not have permission to create cities.'
+                    ]));
+                return;
             }
             
             $raw_input = $this->input->raw_input_stream;
@@ -271,11 +365,17 @@ class Cities extends CI_Controller {
 
     public function update($id) {
         try {
-            $user = $this->authenticate();
-            if (!$user) {
-                log_message('debug', 'Cities update - Authentication failed, but allowing access for testing');
-                // For now, allow access without authentication for testing
-                // TODO: Remove this and add proper permission checking
+            // Check permission for updating cities
+            if (!$this->check_permission('cities:update')) {
+                log_message('debug', 'Cities update - Permission denied: cities:update');
+                $this->output
+                    ->set_status_header(403)
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode([
+                        'success' => false,
+                        'error' => 'Permission denied. You do not have permission to update cities.'
+                    ]));
+                return;
             }
             
             $input = json_decode($this->input->raw_input_stream, true);
@@ -373,11 +473,17 @@ class Cities extends CI_Controller {
 
     public function delete($id) {
         try {
-            $user = $this->authenticate();
-            if (!$user) {
-                log_message('debug', 'Cities delete - Authentication failed, but allowing access for testing');
-                // For now, allow access without authentication for testing
-                // TODO: Remove this and add proper permission checking
+            // Check permission for deleting cities
+            if (!$this->check_permission('cities:delete')) {
+                log_message('debug', 'Cities delete - Permission denied: cities:delete');
+                $this->output
+                    ->set_status_header(403)
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode([
+                        'success' => false,
+                        'error' => 'Permission denied. You do not have permission to delete cities.'
+                    ]));
+                return;
             }
             
             // Check if city exists
@@ -423,11 +529,17 @@ class Cities extends CI_Controller {
 
     public function get($id) {
         try {
-            $user = $this->authenticate();
-            if (!$user) {
-                log_message('debug', 'Cities get - Authentication failed, but allowing access for testing');
-                // For now, allow access without authentication for testing
-                // TODO: Remove this and add proper permission checking
+            // Check permission for reading cities
+            if (!$this->check_permission('cities:read')) {
+                log_message('debug', 'Cities get - Permission denied: cities:read');
+                $this->output
+                    ->set_status_header(403)
+                    ->set_content_type('application/json')
+                    ->set_output(json_encode([
+                        'success' => false,
+                        'error' => 'Permission denied. You do not have permission to read cities.'
+                    ]));
+                return;
             }
             
             $city = $this->db->query("SELECT city_id, city_name, city_state FROM cities WHERE city_id = ?", 
