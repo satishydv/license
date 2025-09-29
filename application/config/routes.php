@@ -87,6 +87,7 @@ $route['api/vendors/create'] = 'vendors/create';
 $route['api/vendors/(:num)'] = 'vendors/get/$1';
 $route['api/vendors/(:num)/update'] = 'vendors/update/$1';
 $route['api/vendors/(:num)/delete'] = 'vendors/delete/$1';
+$route['api/vendors/report'] = 'vendors/report';
 
 // DTO API Routes
 $route['api/dto'] = 'dto/index';
@@ -94,6 +95,7 @@ $route['api/dto/create'] = 'dto/create';
 $route['api/dto/(:num)'] = 'dto/get/$1';
 $route['api/dto/(:num)/update'] = 'dto/update/$1';
 $route['api/dto/(:num)/delete'] = 'dto/delete/$1';
+$route['api/dto/report'] = 'dto/report';
 
 // Applications API Routes
 $route['api/applications'] = 'application/index';

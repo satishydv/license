@@ -153,6 +153,7 @@ class User extends CI_Controller {
         $this->form_validation->set_rules('email', 'Email', 'required|valid_email|is_unique[users.email]');
         $this->form_validation->set_rules('password', 'Password', 'required|min_length[6]');
         $this->form_validation->set_rules('role', 'Role', 'required|callback_validate_role');
+        $this->form_validation->set_rules('phone_no', 'Phone Number', 'max_length[20]');
         
         if ($this->form_validation->run() === FALSE) {
             $errors = $this->form_validation->error_array();
@@ -167,6 +168,7 @@ class User extends CI_Controller {
             'password' => $input['password'],
             'role' => $input['role'],
             'status' => isset($input['status']) ? $input['status'] : 'active',
+            'phone_no' => isset($input['phone_no']) ? $input['phone_no'] : null,
             'created_at' => date('Y-m-d H:i:s')
         ];
         
@@ -228,6 +230,7 @@ class User extends CI_Controller {
         $this->form_validation->set_rules('email', 'Email', 'required|valid_email');
         $this->form_validation->set_rules('role', 'Role', 'required|callback_validate_role');
         $this->form_validation->set_rules('status', 'Status', 'required|in_list[active,inactive,pending]');
+        $this->form_validation->set_rules('phone_no', 'Phone Number', 'max_length[20]');
         
         if ($this->form_validation->run() === FALSE) {
             $errors = $this->form_validation->error_array();
@@ -240,7 +243,8 @@ class User extends CI_Controller {
             'name' => $input['name'],
             'email' => $input['email'],
             'role' => $input['role'],
-            'status' => $input['status']
+            'status' => $input['status'],
+            'phone_no' => isset($input['phone_no']) ? $input['phone_no'] : null
         ];
         
         // Add password if provided

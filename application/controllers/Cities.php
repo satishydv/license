@@ -101,21 +101,38 @@ class Cities extends CI_Controller {
                 log_message('debug', 'Cities index - Authentication successful');
             }
             
-            // Get pagination parameters
+            // Get pagination and search parameters
             $page = (int) $this->input->get('page') ?: 1;
             $limit = (int) $this->input->get('limit') ?: 100;
+            $search = $this->input->get('search') ?: '';
             $offset = ($page - 1) * $limit;
             
-            log_message('debug', 'Cities index - Pagination params: page=' . $page . ', limit=' . $limit . ', offset=' . $offset);
+            log_message('debug', 'Cities index - Pagination params: page=' . $page . ', limit=' . $limit . ', offset=' . $offset . ', search=' . $search);
             
-            // Get total count
-            $countQuery = $this->db->query("SELECT COUNT(*) as total FROM cities");
+            // Build search conditions
+            $whereConditions = array();
+            $whereParams = array();
+            
+            if (!empty($search)) {
+                $whereConditions[] = "(city_name LIKE ? OR city_state LIKE ?)";
+                $searchTerm = '%' . $search . '%';
+                $whereParams[] = $searchTerm;
+                $whereParams[] = $searchTerm;
+            }
+            
+            $whereClause = '';
+            if (!empty($whereConditions)) {
+                $whereClause = 'WHERE ' . implode(' AND ', $whereConditions);
+            }
+            
+            // Get total count with search
+            $countQuery = $this->db->query("SELECT COUNT(*) as total FROM cities " . $whereClause, $whereParams);
             $totalCount = $countQuery->row()->total;
             
             log_message('debug', 'Cities index - Total cities count: ' . $totalCount);
             
-            // Get paginated cities
-            $query = $this->db->query("SELECT city_id, city_name, city_state FROM cities ORDER BY city_state, city_name LIMIT ? OFFSET ?", array($limit, $offset));
+            // Get paginated cities with search
+            $query = $this->db->query("SELECT city_id, city_name, city_state FROM cities " . $whereClause . " ORDER BY city_state, city_name LIMIT ? OFFSET ?", array_merge($whereParams, array($limit, $offset)));
             
             if (!$query) {
                 throw new Exception('Query failed: ' . $this->db->last_query());
