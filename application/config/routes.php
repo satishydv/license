@@ -59,6 +59,7 @@ $route['api/auth/register'] = 'auth/register';
 $route['api/auth/me'] = 'auth/me';
 $route['api/auth/refresh'] = 'auth/refresh';
 $route['api/auth/logout'] = 'auth/logout';
+$route['api/auth/change-password'] = 'auth/change_password';
 
 // Role API Routes
 $route['api/roles'] = 'role/index';
@@ -91,12 +92,12 @@ $route['api/vendors/report'] = 'vendors/report';
 $route['api/vendors/public'] = 'vendors/public_list';
 
 // DTO API Routes
-$route['api/dto'] = 'dto/index';
-$route['api/dto/create'] = 'dto/create';
-$route['api/dto/(:num)'] = 'dto/get/$1';
-$route['api/dto/(:num)/update'] = 'dto/update/$1';
-$route['api/dto/(:num)/delete'] = 'dto/delete/$1';
-$route['api/dto/report'] = 'dto/report';
+$route['api/dto'] = 'DTO/index';
+$route['api/dto/create'] = 'DTO/create';
+$route['api/dto/(:num)'] = 'DTO/get/$1';
+$route['api/dto/(:num)/update'] = 'DTO/update/$1';
+$route['api/dto/(:num)/delete'] = 'DTO/delete/$1';
+$route['api/dto/report'] = 'DTO/report';
 
 // Applications API Routes
 $route['api/applications'] = 'application/index';

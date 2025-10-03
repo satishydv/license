@@ -226,6 +226,61 @@ class Auth extends CI_Controller {
     }
     
     /**
+     * Change user password
+     */
+    public function change_password() {
+        if ($this->input->method() !== 'put') {
+            $this->json_response(false, 'Method not allowed', null, 405);
+            return;
+        }
+        
+        // Authenticate user first
+        $user = $this->authenticate_request();
+        if (!$user) {
+            return;
+        }
+        
+        // Get JSON input
+        $input = json_decode($this->input->raw_input_stream, true);
+        
+        // Validate input
+        $this->form_validation->set_data($input);
+        $this->form_validation->set_rules('current_password', 'Current Password', 'required');
+        $this->form_validation->set_rules('new_password', 'New Password', 'required|min_length[6]');
+        $this->form_validation->set_rules('confirm_password', 'Confirm Password', 'required|matches[new_password]');
+        
+        if ($this->form_validation->run() === FALSE) {
+            $this->json_response(false, 'Validation failed', $this->form_validation->error_array(), 400);
+            return;
+        }
+        
+        $current_password = $input['current_password'];
+        $new_password = $input['new_password'];
+        
+        // Verify current password
+        if (!password_verify($current_password, $user->password)) {
+            $this->json_response(false, 'Current password is incorrect', null, 400);
+            return;
+        }
+        
+        // Check if new password is different from current
+        if (password_verify($new_password, $user->password)) {
+            $this->json_response(false, 'New password must be different from current password', null, 400);
+            return;
+        }
+        
+        // Update password in database (User_model will hash it)
+        $update_data = ['password' => $new_password];
+        $updated = $this->User_model->update_user($user->id, $update_data);
+        
+        if ($updated) {
+            $this->json_response(true, 'Password changed successfully');
+        } else {
+            $this->json_response(false, 'Failed to update password', null, 500);
+        }
+    }
+    
+    /**
      * Authenticate JWT request
      */
     private function authenticate_request() {
