@@ -266,6 +266,81 @@ class User extends CI_Controller {
     }
     
     /**
+     * Update current user's profile (no permission check required)
+     */
+    public function updateProfile() {
+        try {
+            // Debug logging
+            log_message('debug', 'Profile update method called');
+            log_message('debug', 'Request method: ' . $this->input->method());
+            log_message('debug', 'REQUEST_METHOD: ' . $_SERVER['REQUEST_METHOD']);
+            
+            if ($this->input->method() !== 'post') {
+                log_message('debug', 'Method not allowed: ' . $this->input->method());
+                $this->json_response(false, 'Method not allowed', null, 405);
+                return;
+            }
+            
+            // Authenticate user first
+            $user = $this->authenticate_request();
+            if (!$user) {
+                log_message('debug', 'Authentication failed');
+                return;
+            }
+            
+            log_message('debug', 'User authenticated: ' . $user->email);
+        
+        // Get JSON input
+        $raw_input = $this->input->raw_input_stream;
+        log_message('debug', 'Raw input: ' . $raw_input);
+        $input = json_decode($raw_input, true);
+        log_message('debug', 'Decoded input: ' . json_encode($input));
+        
+        // Validate input - only allow name, email, and phone_no
+        $this->form_validation->set_data($input);
+        $this->form_validation->set_rules('name', 'Name', 'required|min_length[2]|max_length[255]');
+        $this->form_validation->set_rules('email', 'Email', 'required|valid_email');
+        $this->form_validation->set_rules('phone_no', 'Phone Number', 'max_length[20]');
+        
+        if ($this->form_validation->run() === FALSE) {
+            $errors = $this->form_validation->error_array();
+            $this->json_response(false, 'Validation failed: ' . implode(', ', $errors), $errors, 400);
+            return;
+        }
+        
+        // Check if email is already taken by another user
+        $existing_user = $this->User_model->get_user_by_email($input['email']);
+        if ($existing_user && $existing_user->id != $user->id) {
+            $this->json_response(false, 'Email address is already taken by another user', null, 400);
+            return;
+        }
+        
+        // Prepare user data - only allow specific fields
+        $user_data = [
+            'name' => $input['name'],
+            'email' => $input['email'],
+            'phone_no' => isset($input['phone_no']) && !empty($input['phone_no']) ? $input['phone_no'] : null
+        ];
+        
+        // Update user
+        $result = $this->User_model->update_user($user->id, $user_data);
+        
+            if ($result) {
+                // Get updated user data
+                $updated_user = $this->User_model->get_user_by_id($user->id);
+                unset($updated_user->password);
+                
+                $this->json_response(true, 'Profile updated successfully', ['user' => $updated_user]);
+            } else {
+                $this->json_response(false, 'Profile update failed', null, 500);
+            }
+        } catch (Exception $e) {
+            log_message('error', 'Profile update error: ' . $e->getMessage());
+            $this->json_response(false, 'An error occurred while updating profile', null, 500);
+        }
+    }
+    
+    /**
      * Delete user
      */
     public function delete($id) {
@@ -287,6 +362,47 @@ class User extends CI_Controller {
         } else {
             $this->json_response(false, 'User deletion failed', null, 500);
         }
+    }
+    
+    /**
+     * Authenticate request and return user data
+     */
+    private function authenticate_request() {
+        $headers = $this->input->request_headers();
+        
+        if (!isset($headers['Authorization'])) {
+            $this->json_response(false, 'Authorization header missing', null, 401);
+            return false;
+        }
+        
+        $auth_header = $headers['Authorization'];
+        $token = null;
+        
+        // Extract token from "Bearer TOKEN" format
+        if (preg_match('/Bearer\s(\S+)/', $auth_header, $matches)) {
+            $token = $matches[1];
+        }
+        
+        if (!$token) {
+            $this->json_response(false, 'Token not found', null, 401);
+            return false;
+        }
+        
+        // Validate token
+        $decoded = $this->jwt_library->validate_token($token);
+        if (!$decoded) {
+            $this->json_response(false, 'Invalid or expired token', null, 401);
+            return false;
+        }
+        
+        // Get user data
+        $user = $this->User_model->get_user_by_id($decoded->user_id);
+        if (!$user || $user->status !== 'active') {
+            $this->json_response(false, 'User not found or inactive', null, 401);
+            return false;
+        }
+        
+        return $user;
     }
     
     /**

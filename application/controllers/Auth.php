@@ -182,6 +182,7 @@ class Auth extends CI_Controller {
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'phone_no' => $user->phone_no,
             'role' => $user->role,
             'status' => $user->status,
             'created_at' => $user->created_at,

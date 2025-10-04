@@ -74,6 +74,7 @@ $route['api/users/create'] = 'user/create';
 $route['api/users/(:num)'] = 'user/show/$1';
 $route['api/users/(:num)/update'] = 'user/update/$1';
 $route['api/users/(:num)/delete'] = 'user/delete/$1';
+$route['api/profile/update'] = 'user/updateProfile';
 
 // Cities API Routes
 $route['api/cities'] = 'cities/index';
