@@ -20,7 +20,7 @@ $config['db_database'] = getenv('DB_DATABASE') ?: 'license';
 // JWT Configuration
 $config['jwt_key'] = getenv('JWT_SECRET_KEY') ?: 'driving_license_secure_secret_key_2024_xyz789_abc123';
 $config['jwt_algorithm'] = getenv('JWT_ALGORITHM') ?: 'HS256';
-$config['jwt_expire_time'] = getenv('JWT_EXPIRE_TIME') ?: 3600; // 1 hour
+$config['jwt_expire_time'] = getenv('JWT_EXPIRE_TIME') ?: 86400; // 24 hours in seconds
 $config['jwt_refresh_expire_time'] = getenv('JWT_REFRESH_EXPIRE_TIME') ?: 604800; // 7 days
 
 // CORS Configuration

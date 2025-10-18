@@ -226,9 +226,9 @@ class Vendors extends CI_Controller {
             $name = $this->input->post('name');
             $phone_no = $this->input->post('phone_no');
             $address = $this->input->post('address');
-            $amount = $this->input->post('amount') ? (float) $this->input->post('amount') : 0.00;
-            $pay_amount = $this->input->post('pay_amount') ? (float) $this->input->post('pay_amount') : 0.00;
-            $mode_of_payment = $this->input->post('mode_of_payment') ?: 'cash';
+            $amount = $this->input->post('amount') ? (float) $this->input->post('amount') : null;
+            $pay_amount = $this->input->post('pay_amount') ? (float) $this->input->post('pay_amount') : null;
+            $mode_of_payment = $this->input->post('mode_of_payment') ?: null;
             $total_customer = $this->input->post('total_customer') ? (int) $this->input->post('total_customer') : 0;
             
             if (empty($name) || empty($phone_no) || empty($address)) {
@@ -242,8 +242,8 @@ class Vendors extends CI_Controller {
                 return;
             }
             
-            // Validate payment mode
-            if (!in_array($mode_of_payment, ['cash', 'upi', 'bank-transfer'])) {
+            // Validate payment mode (only if provided)
+            if ($mode_of_payment && !in_array($mode_of_payment, ['cash', 'upi', 'bank-transfer'])) {
                 $this->output
                     ->set_status_header(400)
                     ->set_content_type('application/json')
@@ -366,9 +366,9 @@ class Vendors extends CI_Controller {
             $name = $this->input->post('name');
             $phone_no = $this->input->post('phone_no');
             $address = $this->input->post('address');
-            $amount = $this->input->post('amount') ? (float) $this->input->post('amount') : 0.00;
-            $pay_amount = $this->input->post('pay_amount') ? (float) $this->input->post('pay_amount') : 0.00;
-            $mode_of_payment = $this->input->post('mode_of_payment') ?: 'cash';
+            $amount = $this->input->post('amount') ? (float) $this->input->post('amount') : null;
+            $pay_amount = $this->input->post('pay_amount') ? (float) $this->input->post('pay_amount') : null;
+            $mode_of_payment = $this->input->post('mode_of_payment') ?: null;
             $total_customer = $this->input->post('total_customer') ? (int) $this->input->post('total_customer') : 0;
             
             log_message('debug', 'Vendors update - Parsed data: name=' . $name . ', phone=' . $phone_no . ', address=' . $address);
@@ -384,8 +384,8 @@ class Vendors extends CI_Controller {
                 return;
             }
             
-            // Validate payment mode
-            if (!in_array($mode_of_payment, ['cash', 'upi', 'bank-transfer'])) {
+            // Validate payment mode (only if provided)
+            if ($mode_of_payment && !in_array($mode_of_payment, ['cash', 'upi', 'bank-transfer'])) {
                 $this->output
                     ->set_status_header(400)
                     ->set_content_type('application/json')

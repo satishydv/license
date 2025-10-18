@@ -3,3 +3,7 @@ ALTER TABLE `applications` ADD COLUMN `vendor` VARCHAR(255) NULL AFTER `mode_of_
 
 -- Add index on vendor for better performance
 ALTER TABLE `applications` ADD INDEX `idx_vendor` (`vendor`);
+
+
+
+ALTER TABLE applications DROP INDEX uq_application_no;

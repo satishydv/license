@@ -100,8 +100,9 @@ class Application extends CI_Controller {
 	}
 
 	public function create() {
-		// Skip permission check for now to allow application creation without authentication
-		log_message('debug', 'Application create - Skipping permission check for testing');
+		try {
+			// Skip permission check for now to allow application creation without authentication
+			log_message('debug', 'Application create - Starting application creation process');
 		
 		// Debug: Log the request method
 		$method = $this->input->method();
@@ -121,6 +122,26 @@ class Application extends CI_Controller {
 		log_message('debug', 'Application create - POST data: ' . json_encode($_POST));
 		log_message('debug', 'Application create - FILES data: ' . json_encode($_FILES));
 		
+		// Log each field individually for debugging
+		log_message('debug', 'Field values:');
+		log_message('debug', 'name: ' . $this->input->post('name'));
+		log_message('debug', 'father_name: ' . $this->input->post('father_name'));
+		log_message('debug', 'contact_no: ' . $this->input->post('contact_no'));
+		log_message('debug', 'dob: ' . $this->input->post('dob'));
+		log_message('debug', 'blood_group: ' . $this->input->post('blood_group'));
+		log_message('debug', 'state: ' . $this->input->post('state'));
+		log_message('debug', 'city: ' . $this->input->post('city'));
+		log_message('debug', 'vendor: ' . $this->input->post('vendor'));
+		log_message('debug', 'license_type: ' . $this->input->post('license_type'));
+		log_message('debug', 'application_no: ' . $this->input->post('application_no'));
+		log_message('debug', 'license_no: ' . $this->input->post('license_no'));
+		log_message('debug', 'issue_date: ' . $this->input->post('issue_date'));
+		log_message('debug', 'expiry_date: ' . $this->input->post('expiry_date'));
+		log_message('debug', 'cover_class: ' . $this->input->post('cover_class'));
+		log_message('debug', 'amount: ' . $this->input->post('amount'));
+		log_message('debug', 'pay_amount: ' . $this->input->post('pay_amount'));
+		log_message('debug', 'mode_of_payment: ' . $this->input->post('mode_of_payment'));
+		
 		// Validate basic required fields
 		$this->form_validation->set_rules('name', 'Name', 'required');
 		$this->form_validation->set_rules('father_name', 'Father Name', 'required');
@@ -129,23 +150,26 @@ class Application extends CI_Controller {
 		$this->form_validation->set_rules('blood_group', 'Blood Group', 'required');
 		$this->form_validation->set_rules('state', 'State', 'required');
 		$this->form_validation->set_rules('city', 'City', 'required');
-		$this->form_validation->set_rules('vendor', 'Vendor', 'required');
+		$this->form_validation->set_rules('vendor', 'Vendor', '');
 		$this->form_validation->set_rules('license_type', 'License Type', 'required');
 		// Application number is now optional
 		$this->form_validation->set_rules('application_no', 'Application Number', '');
 		$this->form_validation->set_rules('license_no', 'License Number', 'required');
 		$this->form_validation->set_rules('issue_date', 'Issue Date', 'required');
 		$this->form_validation->set_rules('expiry_date', 'Expiry Date', 'required');
-		$this->form_validation->set_rules('cover_class', 'Cover Class', 'required');
+		$this->form_validation->set_rules('cover_class', 'Cover Class', '');
 		// Payment fields are now optional
-		$this->form_validation->set_rules('amount', 'Amount', 'numeric');
-		$this->form_validation->set_rules('pay_amount', 'Pay Amount', 'numeric');
+		$this->form_validation->set_rules('amount', 'Amount', '');
+		$this->form_validation->set_rules('pay_amount', 'Pay Amount', '');
 		$this->form_validation->set_rules('mode_of_payment', 'Mode of Payment', '');
 
 		if ($this->form_validation->run() === FALSE) {
 			$errors = $this->form_validation->error_array();
+			log_message('error', 'Form validation failed: ' . json_encode($errors));
 			return $this->json_response(false, 'Validation failed', $errors, 400);
 		}
+		
+		log_message('debug', 'Form validation passed successfully');
 
 		$licenseUploadPath = FCPATH . 'public' . DIRECTORY_SEPARATOR . 'license' . DIRECTORY_SEPARATOR;
 		$paymentUploadPath = FCPATH . 'public' . DIRECTORY_SEPARATOR . 'payment' . DIRECTORY_SEPARATOR;
@@ -195,6 +219,11 @@ class Application extends CI_Controller {
 			$paymentPathRel = 'public/payment/' . $data['file_name'];
 		}
 
+		// Helper function to convert empty strings to NULL for nullable fields
+		$emptyToNull = function($value) {
+			return ($value === '' || $value === null) ? null : $value;
+		};
+
 		$payload = [
 			'name' => $this->input->post('name'),
 			'father_name' => $this->input->post('father_name'),
@@ -203,32 +232,50 @@ class Application extends CI_Controller {
 			'blood_group' => $this->input->post('blood_group'),
 			'state' => $this->input->post('state'),
 			'city' => $this->input->post('city'),
-			'vendor' => $this->input->post('vendor'),
+			'vendor' => $emptyToNull($this->input->post('vendor')),
 			'license_type' => $this->input->post('license_type'),
-			'application_no' => $this->input->post('application_no'),
+			'application_no' => $emptyToNull($this->input->post('application_no')),
 			'license_no' => $this->input->post('license_no'),
 			'issue_date' => $this->input->post('issue_date'),
 			'expiry_date' => $this->input->post('expiry_date'),
-			'cover_class' => $this->input->post('cover_class'),
-			'amount' => $this->input->post('amount'),
-			'pay_amount' => $this->input->post('pay_amount'),
-			'mode_of_payment' => $this->input->post('mode_of_payment'),
+			'cover_class' => $emptyToNull($this->input->post('cover_class')),
+			'amount' => $emptyToNull($this->input->post('amount')),
+			'pay_amount' => $emptyToNull($this->input->post('pay_amount')),
+			'mode_of_payment' => $emptyToNull($this->input->post('mode_of_payment')),
 			'license_attachment_path' => $licensePathRel,
 			'payment_receipt_path' => $paymentPathRel,
 			'created_at' => date('Y-m-d H:i:s'),
 			'updated_at' => date('Y-m-d H:i:s')
 		];
 
+		// Log the payload before insertion
+		log_message('debug', 'Database payload: ' . json_encode($payload));
+		
 		// Insert
+		log_message('debug', 'Attempting database insert...');
 		$inserted = $this->db->insert('applications', $payload);
+		
 		if (!$inserted) {
+			// Log database error details
+			$db_error = $this->db->error();
+			log_message('error', 'Database insert failed: ' . json_encode($db_error));
+			log_message('error', 'Last query: ' . $this->db->last_query());
+			
 			// cleanup files on failure
 			if ($licensePathRel) { @unlink($licenseUploadPath . basename($licensePathRel)); }
 			if ($paymentPathRel) { @unlink($paymentUploadPath . basename($paymentPathRel)); }
-			return $this->json_response(false, 'Database insert failed', null, 500);
+			return $this->json_response(false, 'Database insert failed: ' . $db_error['message'], $db_error, 500);
 		}
+		
+		log_message('debug', 'Database insert successful. Insert ID: ' . $this->db->insert_id());
 
 		return $this->json_response(true, 'Application created successfully', [ 'id' => $this->db->insert_id() ], 201);
+		
+		} catch (Exception $e) {
+			log_message('error', 'Application create - Exception caught: ' . $e->getMessage());
+			log_message('error', 'Application create - Stack trace: ' . $e->getTraceAsString());
+			return $this->json_response(false, 'Server error: ' . $e->getMessage(), null, 500);
+		}
 	}
 
 	public function index() {
@@ -275,6 +322,14 @@ class Application extends CI_Controller {
 			return $this->json_response(false, 'Method not allowed', null, 405);
 		}
 
+		// Get existing application data to handle file replacement
+		$query = $this->db->get_where('applications', ['id' => $id]);
+		$existingApplication = $query->row_array();
+		
+		if (!$existingApplication) {
+			return $this->json_response(false, 'Application not found', null, 404);
+		}
+
 		// Validate basic required fields
 		$this->form_validation->set_rules('name', 'Name', 'required');
 		$this->form_validation->set_rules('father_name', 'Father Name', 'required');
@@ -283,22 +338,90 @@ class Application extends CI_Controller {
 		$this->form_validation->set_rules('blood_group', 'Blood Group', 'required');
 		$this->form_validation->set_rules('state', 'State', 'required');
 		$this->form_validation->set_rules('city', 'City', 'required');
-		$this->form_validation->set_rules('vendor', 'Vendor', 'required');
+		$this->form_validation->set_rules('vendor', 'Vendor', '');
 		$this->form_validation->set_rules('license_type', 'License Type', 'required');
 		// Application number is now optional
 		$this->form_validation->set_rules('application_no', 'Application Number', '');
 		$this->form_validation->set_rules('license_no', 'License Number', 'required');
 		$this->form_validation->set_rules('issue_date', 'Issue Date', 'required');
 		$this->form_validation->set_rules('expiry_date', 'Expiry Date', 'required');
-		$this->form_validation->set_rules('cover_class', 'Cover Class', 'required');
+		$this->form_validation->set_rules('cover_class', 'Cover Class', '');
 		// Payment fields are now optional
-		$this->form_validation->set_rules('amount', 'Amount', 'numeric');
-		$this->form_validation->set_rules('pay_amount', 'Pay Amount', 'numeric');
+		$this->form_validation->set_rules('amount', 'Amount', '');
+		$this->form_validation->set_rules('pay_amount', 'Pay Amount', '');
 		$this->form_validation->set_rules('mode_of_payment', 'Mode of Payment', '');
 
 		if ($this->form_validation->run() === FALSE) {
 			$errors = $this->form_validation->error_array();
 			return $this->json_response(false, 'Validation failed', $errors, 400);
+		}
+
+		// Helper function to convert empty strings to NULL for nullable fields
+		$emptyToNull = function($value) {
+			return ($value === '' || $value === null) ? null : $value;
+		};
+
+		// Set up upload paths
+		$licenseUploadPath = FCPATH . 'public/license/';
+		$paymentUploadPath = FCPATH . 'public/payment/';
+		
+		// Ensure directories exist
+		if (!is_dir($licenseUploadPath)) {
+			mkdir($licenseUploadPath, 0755, true);
+		}
+		if (!is_dir($paymentUploadPath)) {
+			mkdir($paymentUploadPath, 0755, true);
+		}
+
+		$licensePathRel = $existingApplication['license_attachment_path'];
+		$paymentPathRel = $existingApplication['payment_receipt_path'];
+
+		// Upload license attachment (field: license_attachment)
+		if (isset($_FILES['license_attachment']) && $_FILES['license_attachment']['error'] !== UPLOAD_ERR_NO_FILE) {
+			// Delete old license file if it exists
+			if ($existingApplication['license_attachment_path']) {
+				@unlink(FCPATH . $existingApplication['license_attachment_path']);
+			}
+			
+			$config = [
+				'upload_path' => $licenseUploadPath,
+				'allowed_types' => 'pdf|jpg|jpeg|png|doc|docx',
+				'max_size' => 5120, // 5MB
+				'file_ext_tolower' => TRUE,
+				'encrypt_name' => TRUE
+			];
+			$this->upload->initialize($config);
+			if (!$this->upload->do_upload('license_attachment')) {
+				return $this->json_response(false, $this->upload->display_errors('', ''), null, 400);
+			}
+			$data = $this->upload->data();
+			$licensePathRel = 'public/license/' . $data['file_name'];
+		}
+
+		// Upload payment receipt (field: payment_receipt)
+		if (isset($_FILES['payment_receipt']) && $_FILES['payment_receipt']['error'] !== UPLOAD_ERR_NO_FILE) {
+			// Delete old payment file if it exists
+			if ($existingApplication['payment_receipt_path']) {
+				@unlink(FCPATH . $existingApplication['payment_receipt_path']);
+			}
+			
+			$config = [
+				'upload_path' => $paymentUploadPath,
+				'allowed_types' => 'pdf|jpg|jpeg|png',
+				'max_size' => 5120,
+				'file_ext_tolower' => TRUE,
+				'encrypt_name' => TRUE
+			];
+			$this->upload->initialize($config);
+			if (!$this->upload->do_upload('payment_receipt')) {
+				// roll back license upload if needed
+				if ($licensePathRel && $licensePathRel !== $existingApplication['license_attachment_path']) {
+					@unlink($licenseUploadPath . basename($licensePathRel));
+				}
+				return $this->json_response(false, $this->upload->display_errors('', ''), null, 400);
+			}
+			$data = $this->upload->data();
+			$paymentPathRel = 'public/payment/' . $data['file_name'];
 		}
 
 		$payload = [
@@ -309,16 +432,18 @@ class Application extends CI_Controller {
 			'blood_group' => $this->input->post('blood_group'),
 			'state' => $this->input->post('state'),
 			'city' => $this->input->post('city'),
-			'vendor' => $this->input->post('vendor'),
+			'vendor' => $emptyToNull($this->input->post('vendor')),
 			'license_type' => $this->input->post('license_type'),
-			'application_no' => $this->input->post('application_no'),
+			'application_no' => $emptyToNull($this->input->post('application_no')),
 			'license_no' => $this->input->post('license_no'),
 			'issue_date' => $this->input->post('issue_date'),
 			'expiry_date' => $this->input->post('expiry_date'),
-			'cover_class' => $this->input->post('cover_class'),
-			'amount' => $this->input->post('amount'),
-			'pay_amount' => $this->input->post('pay_amount'),
-			'mode_of_payment' => $this->input->post('mode_of_payment'),
+			'cover_class' => $emptyToNull($this->input->post('cover_class')),
+			'amount' => $emptyToNull($this->input->post('amount')),
+			'pay_amount' => $emptyToNull($this->input->post('pay_amount')),
+			'mode_of_payment' => $emptyToNull($this->input->post('mode_of_payment')),
+			'license_attachment_path' => $licensePathRel,
+			'payment_receipt_path' => $paymentPathRel,
 			'updated_at' => date('Y-m-d H:i:s')
 		];
 

@@ -224,8 +224,8 @@ class DTO extends CI_Controller {
             
             // Get form data
             $date = $this->input->post('date');
-            $amount = $this->input->post('amount') ? (float) $this->input->post('amount') : 0.00;
-            $pay_amount = $this->input->post('pay_amount') ? (float) $this->input->post('pay_amount') : 0.00;
+            $amount = $this->input->post('amount') ? (float) $this->input->post('amount') : null;
+            $pay_amount = $this->input->post('pay_amount') ? (float) $this->input->post('pay_amount') : null;
             $no_of_applicant = $this->input->post('no_of_applicant') ? (int) $this->input->post('no_of_applicant') : 0;
             
             if (empty($date)) {
@@ -346,8 +346,8 @@ class DTO extends CI_Controller {
             log_message('debug', 'DTO update - REQUEST_METHOD: ' . $_SERVER['REQUEST_METHOD']);
             
             $date = $this->input->post('date');
-            $amount = $this->input->post('amount') ? (float) $this->input->post('amount') : 0.00;
-            $pay_amount = $this->input->post('pay_amount') ? (float) $this->input->post('pay_amount') : 0.00;
+            $amount = $this->input->post('amount') ? (float) $this->input->post('amount') : null;
+            $pay_amount = $this->input->post('pay_amount') ? (float) $this->input->post('pay_amount') : null;
             $no_of_applicant = $this->input->post('no_of_applicant') ? (int) $this->input->post('no_of_applicant') : 0;
             
             if (empty($date)) {
